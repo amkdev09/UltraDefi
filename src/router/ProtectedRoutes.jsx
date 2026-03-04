@@ -3,11 +3,11 @@ import { useAuth } from "../hooks/useAuth";
 
 const ProtectedRoute = ({ children }) => {
   const location = useLocation();
-  const { token } = useAuth();
+  const { isConnected } = useAuth();  
 
-  // if (!token) {
-  //   return <Navigate to="/login" state={{ from: location }} replace />;
-  // }
+  if (!isConnected) {
+    return <Navigate to="/connect-metamask" state={{ from: location }} replace />;
+  }
 
   return children;
 };

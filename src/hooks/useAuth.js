@@ -1,95 +1,114 @@
 import { useSelector, useDispatch } from 'react-redux';
-import { useCallback, useRef, useEffect } from 'react';
-import { clearUser, setUserData, mergeAuthState } from '../store/slices/userAuthSlice';
-import Cookies from 'js-cookie';
+import { useCallback, useEffect } from 'react';
+import { clearUser, setUserData } from '../store/slices/userAuthSlice';
+import { getMetaMaskSDK } from '../lib/metamaskSDK';
 
-/** In-flight promise refs for deduplicating concurrent API calls */
-const userDataPromiseRef = { current: null };
+let rehydrationPromise = null;
+
+/** Rehydrate wallet address from MetaMask on load (no user prompt). Runs once per app. */
+function rehydrateAddress(dispatch) {
+  if (rehydrationPromise) return rehydrationPromise;
+  rehydrationPromise = (async () => {
+    try {
+      const provider = getMetaMaskSDK().getProvider();
+      if (!provider?.request) return;
+      const accounts = await provider.request({ method: 'eth_accounts', params: [] });
+      if (Array.isArray(accounts) && accounts.length > 0) {
+        dispatch(setUserData({ address: accounts[0] }));
+      }
+    } catch {
+      // ignore
+    }
+  })();
+  return rehydrationPromise;
+}
 
 export const useAuth = () => {
   const dispatch = useDispatch();
-  const isMountedRef = useRef(true);
+  const userAuth = useSelector((state) => state.userAuth);
+  const address = userAuth?.address;
+  const isConnected = !!address;
 
-  const cookieToken = Cookies.get('token');
-
-  const data = useSelector((state) => state.userAuth);
-  const user = data?.userData;
-  const token = data?.token ?? cookieToken;
-
-  const clear = useCallback(() => {
-    userDataPromiseRef.current = null;
+  const clearAddress = useCallback(() => {
     dispatch(clearUser());
-    Cookies.remove('token');
-    Cookies.remove('refreshToken');
-    localStorage.clear();
   }, [dispatch]);
 
-  const setUser = useCallback(
-    (userData) => {
-      const { token: tradeToken, refreshToken: tradeRefreshToken, user: tradeUser } = userData;
-
-      if (tradeToken) Cookies.set('token', tradeToken);
-      if (tradeRefreshToken) Cookies.set('refreshToken', tradeRefreshToken);
-      dispatch(
-        setUserData({
-          userData: tradeUser,
-          token: tradeToken,
-          refreshToken: tradeRefreshToken,
-        })
-      );
+  const setAddress = useCallback(
+    (addr) => {
+      dispatch(setUserData({ address: addr }));
     },
     [dispatch]
   );
 
-  // const fetchUserData = useCallback(async () => {
-  //   if (!token || user) return Promise.resolve(user ?? null);
+  const connectMetaMask = useCallback(async () => {
+    try {
+      const MMSDK = getMetaMaskSDK();
+      const accounts = await MMSDK.connect();
+      if (accounts?.length > 0) {
+        setAddress(accounts[0]);
+        return accounts[0];
+      }
+      throw new Error('No accounts found');
+    } catch (err) {
+      if (err.code === 4001) {
+        throw new Error('Connection rejected by user');
+      }
+      if (err.message?.includes('user rejected') || err.message?.includes('User rejected')) {
+        throw new Error('Connection rejected by user');
+      }
+      throw err;
+    }
+  }, [setAddress]);
 
-  //   if (userDataPromiseRef.current) {
-  //     return userDataPromiseRef.current;
-  //   }
+  /** Revoke MetaMask connection (EIP-2255) and clear local state. */
+  const disconnectMetaMask = useCallback(async () => {
+    try {
+      const provider = getMetaMaskSDK().getProvider();
+      if (provider?.request) {
+        await provider.request({
+          method: 'wallet_revokePermissions',
+          params: [{ eth_accounts: {} }],
+        });
+      }
+    } catch {
+      // Revoke not supported or failed; still clear local state
+    } finally {
+      clearAddress();
+    }
+  }, [clearAddress]);
 
-  //   const promise = (async () => {
-  //     try {
-  //       const response = await authService.getUser();
-  //       if (!isMountedRef.current) return null;
-  //       if (response?.success && response?.data?.user) {
-  //         dispatch(mergeAuthState({ userData: response.data.user }));
-  //         return response.data.user;
-  //       }
-  //       return null;
-  //     } catch (error) {
-  //       if (isMountedRef.current) {
-  //         console.error('[useAuth] Error fetching user data:', error);
-  //       }
-  //       return null;
-  //     } finally {
-  //       userDataPromiseRef.current = null;
-  //     }
-  //   })();
-
-  //   userDataPromiseRef.current = promise;
-  //   return promise;
-  // }, [token, user, dispatch]);
-
+  // Rehydrate address from MetaMask on mount (e.g. after refresh) — eth_accounts does not prompt
   useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
+    rehydrateAddress(dispatch);
+  }, [dispatch]);
 
-  // useEffect(() => {
-  //   if (token && !user) {
-  //     fetchUserData();
-  //   }
-  // }, [token, user, fetchUserData]);
+  // Sync store when user switches account or disconnects in MetaMask
+  useEffect(() => {
+    let provider;
+    try {
+      provider = getMetaMaskSDK().getProvider();
+    } catch {
+      return;
+    }
+    if (!provider?.on) return;
+    const handleAccountsChanged = (accounts) => {
+      if (accounts?.length > 0) {
+        setAddress(accounts[0]);
+      } else {
+        clearAddress();
+      }
+    };
+    provider.on('accountsChanged', handleAccountsChanged);
+    return () => provider.removeListener?.('accountsChanged', handleAccountsChanged);
+  }, [clearAddress, setAddress]);
 
   return {
-    userData: user,
-    token,
-    isLoggedIn: Boolean(token),
-    clear,
-    setUser,
+    address,
+    isConnected,
+    clearAddress,
+    setAddress,
+    connectMetaMask,
+    disconnectMetaMask,
   };
 };
 

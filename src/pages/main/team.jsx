@@ -1,8 +1,23 @@
 import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useSelector } from "react-redux";
 import abstractDistant from "../../assets/images/abstract-distant.webp";
 import selsilaBrandLogo from "../../assets/images/selsila-brand-horizontal.webp";
+import userServices from "../../services/userServices";
 
 export default function AirdropPage() {
+    const address = useSelector((state) => state.userAuth?.address);
+    console.log('address: ', address);
+
+    const { data: vaultSummary, isLoading, isError, error } = useQuery({
+        queryKey: ["vaultSummary", address],
+        queryFn: () => userServices.getVaultSummary(),
+    });
+    console.log('vaultSummary: ', vaultSummary);
+
+    // if (isLoading) return <div>Loading...</div>;
+    // if (isError) return <div>Error: {error.message}</div>;
+
     return (
         <main className="max-w-120 w-full mx-auto pt-12 px-4">
             <div className="flex justify-end">
@@ -39,7 +54,7 @@ export default function AirdropPage() {
                                 <button className="flex items-center gap-1 text-[#D9D9D9] text-sm cursor-pointer" id="headlessui-menu-button-«r2»" type="button" aria-haspopup="menu" aria-expanded="false" data-headlessui-state="">
                                     Currency
                                     <svg xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" className="iconify iconify--line-md" width="1em" height="1em" viewBox="0 0 24 24">
-                                        <path fill="none" stroke="currentColor" stroke-dasharray="10" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15l-5 -5M12 15l5 -5">
+                                        <path fill="none" stroke="currentColor" strokeDasharray="10" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15l-5 -5M12 15l5 -5">
                                             <animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="10;0"></animate>
                                         </path>
                                     </svg>
@@ -64,7 +79,7 @@ export default function AirdropPage() {
                     <div className="flex items-center gap-2 text-[#D9D9D9] text-sm cursor-pointer h-14 border border-white/5 bg-white/10 backdrop-blur-md w-full rounded-xl px-3">
                         <svg xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" className="iconify iconify--solar size-5 shrink-0" width="1em" height="1em" viewBox="0 0 24 24">
                             <path fill="currentColor" d="M19 12a1 1 0 1 1-2 0a1 1 0 0 1 2 0"></path>
-                            <path fill="currentColor" fill-rule="evenodd" d="M9.944 3.25h3.112c1.838 0 3.294 0 4.433.153c1.172.158 2.121.49 2.87 1.238c.924.925 1.219 2.163 1.326 3.77c.577.253 1.013.79 1.06 1.47c.005.061.005.126.005.186v3.866c0 .06 0 .125-.004.185c-.048.68-.484 1.218-1.061 1.472c-.107 1.606-.402 2.844-1.326 3.769c-.749.748-1.698 1.08-2.87 1.238c-1.14.153-2.595.153-4.433.153H9.944c-1.838 0-3.294 0-4.433-.153c-1.172-.158-2.121-.49-2.87-1.238c-.748-.749-1.08-1.698-1.238-2.87c-.153-1.14-.153-2.595-.153-4.433v-.112c0-1.838 0-3.294.153-4.433c.158-1.172.49-2.121 1.238-2.87c.749-.748 1.698-1.08 2.87-1.238c1.14-.153 2.595-.153 4.433-.153m10.224 12.5H18.23c-2.145 0-3.981-1.628-3.981-3.75s1.836-3.75 3.98-3.75h1.938c-.114-1.341-.371-2.05-.87-2.548c-.423-.423-1.003-.677-2.009-.812c-1.027-.138-2.382-.14-4.289-.14h-3c-1.907 0-3.261.002-4.29.14c-1.005.135-1.585.389-2.008.812S3.025 6.705 2.89 7.71c-.138 1.028-.14 2.382-.14 4.289s.002 3.262.14 4.29c.135 1.005.389 1.585.812 2.008s1.003.677 2.009.812c1.028.138 2.382.14 4.289.14h3c1.907 0 3.262-.002 4.29-.14c1.005-.135 1.585-.389 2.008-.812c.499-.498.756-1.206.87-2.548M5.25 8A.75.75 0 0 1 6 7.25h4a.75.75 0 0 1 0 1.5H6A.75.75 0 0 1 5.25 8m15.674 1.75H18.23c-1.424 0-2.481 1.059-2.481 2.25s1.057 2.25 2.48 2.25h2.718c.206-.013.295-.152.302-.236V9.986c-.007-.084-.096-.223-.302-.235z" clip-rule="evenodd"></path>
+                            <path fill="currentColor" fillRule="evenodd" d="M9.944 3.25h3.112c1.838 0 3.294 0 4.433.153c1.172.158 2.121.49 2.87 1.238c.924.925 1.219 2.163 1.326 3.77c.577.253 1.013.79 1.06 1.47c.005.061.005.126.005.186v3.866c0 .06 0 .125-.004.185c-.048.68-.484 1.218-1.061 1.472c-.107 1.606-.402 2.844-1.326 3.769c-.749.748-1.698 1.08-2.87 1.238c-1.14.153-2.595.153-4.433.153H9.944c-1.838 0-3.294 0-4.433-.153c-1.172-.158-2.121-.49-2.87-1.238c-.748-.749-1.08-1.698-1.238-2.87c-.153-1.14-.153-2.595-.153-4.433v-.112c0-1.838 0-3.294.153-4.433c.158-1.172.49-2.121 1.238-2.87c.749-.748 1.698-1.08 2.87-1.238c1.14-.153 2.595-.153 4.433-.153m10.224 12.5H18.23c-2.145 0-3.981-1.628-3.981-3.75s1.836-3.75 3.98-3.75h1.938c-.114-1.341-.371-2.05-.87-2.548c-.423-.423-1.003-.677-2.009-.812c-1.027-.138-2.382-.14-4.289-.14h-3c-1.907 0-3.261.002-4.29.14c-1.005.135-1.585.389-2.008.812S3.025 6.705 2.89 7.71c-.138 1.028-.14 2.382-.14 4.289s.002 3.262.14 4.29c.135 1.005.389 1.585.812 2.008s1.003.677 2.009.812c1.028.138 2.382.14 4.289.14h3c1.907 0 3.262-.002 4.29-.14c1.005-.135 1.585-.389 2.008-.812c.499-.498.756-1.206.87-2.548M5.25 8A.75.75 0 0 1 6 7.25h4a.75.75 0 0 1 0 1.5H6A.75.75 0 0 1 5.25 8m15.674 1.75H18.23c-1.424 0-2.481 1.059-2.481 2.25s1.057 2.25 2.48 2.25h2.718c.206-.013.295-.152.302-.236V9.986c-.007-.084-.096-.223-.302-.235z" clipRule="evenodd"></path>
                         </svg>
                         <p className="text-sm">Wallet address not set.</p>
                     </div>
@@ -94,7 +109,7 @@ export default function AirdropPage() {
                     <div className="ml-auto flex items-center gap-2">
                         <button>
                             <svg xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" className="iconify iconify--solar size-5 text-white" width="1em" height="1em" viewBox="0 0 24 24">
-                                <g fill="none" stroke="currentColor" stroke-width="1.5">
+                                <g fill="none" stroke="currentColor" strokeWidth="1.5">
                                     <path d="M6 11c0-2.828 0-4.243.879-5.121C7.757 5 9.172 5 12 5h3c2.828 0 4.243 0 5.121.879C21 6.757 21 8.172 21 11v5c0 2.828 0 4.243-.879 5.121C19.243 22 17.828 22 15 22h-3c-2.828 0-4.243 0-5.121-.879C6 20.243 6 18.828 6 16z"></path>
                                     <path d="M6 19a3 3 0 0 1-3-3v-6c0-3.771 0-5.657 1.172-6.828S7.229 2 11 2h4a3 3 0 0 1 3 3"></path>
                                 </g>

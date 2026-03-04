@@ -1,7 +1,5 @@
 import React, { lazy, Suspense } from "react";
-import { Box } from "@mui/material";
-import BTLoader from "../components/Loader";
-import { AppColors } from "../constant/appColors";
+import { Box, CircularProgress } from "@mui/material";
 
 const componentCache = new WeakMap();
 
@@ -16,7 +14,7 @@ const defaultFallback = (
       height: "100vh",
     }}
   >
-    <BTLoader />
+    <CircularProgress thickness={4} className="text-selsila-green" />
   </Box>
 );
 
@@ -26,7 +24,7 @@ function asyncComponent(
     fallback = defaultFallback,
     errorFallback =
     <div className="flex flex-col justify-center items-center gap-2 h-full">
-      <h5 style={{ color: AppColors.ERROR }}>Error loading component</h5>
+      <h5 className="text-red-500">Error loading component</h5>
     </div>,
     displayName = "AsyncComponent",
     retryCount = 3,

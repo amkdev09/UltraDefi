@@ -1,31 +1,21 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-  userData: null,
-  token: null,
-  refreshToken: null,
+  address: null,
 };
 
 const userAuthSlice = createSlice({
-  name: 'user',
+  name: 'userAuth',
   initialState,
   reducers: {
     clearUser: (state) => {
-      state.userData = null;
-      state.token = null;
-      state.refreshToken = null;
+      state.address = null;
     },
     setUserData: (state, action) => {
-      state.userData = action.payload.userData;
-      state.token = action.payload.token;
-      state.refreshToken = action.payload.refreshToken;
-    },
-    mergeAuthState: (state, action) => {
-      const payload = action.payload;
-      if (payload.userData !== undefined) state.userData = payload.userData;
+      state.address = action.payload.address;
     },
   },
 });
 
-export const { clearUser, setUserData, mergeAuthState } = userAuthSlice.actions;
+export const { clearUser, setUserData } = userAuthSlice.actions;
 export default userAuthSlice.reducer;

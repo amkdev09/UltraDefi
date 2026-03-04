@@ -5,7 +5,7 @@ import { IoGiftOutline } from "react-icons/io5";
 import { FaRankingStar } from "react-icons/fa6";
 import { CgProfile } from "react-icons/cg";
 
-export const authRouters = [
+export const commonRouters = [
   {
     path: "/login",
     component: asyncComponent(() => import("../pages/auth/Login.jsx")),
@@ -22,9 +22,10 @@ export const authRouters = [
     path: "/verify-otp",
     component: asyncComponent(() => import("../pages/auth/verifyOtp.jsx")),
   },
-];
-
-export const protectedRouters = [
+  {
+    path: "/connect-metamask",
+    component: asyncComponent(() => import("../pages/auth/connectMetamask.jsx")),
+  },
   {
     path: "/",
     isBottomNav: true,
@@ -53,6 +54,9 @@ export const protectedRouters = [
     icon: FaRankingStar,
     component: asyncComponent(() => import("../pages/main/board.jsx")),
   },
+];
+
+export const protectedRouters = [
   {
     path: "/assets",
     isBottomNav: true,
@@ -62,4 +66,5 @@ export const protectedRouters = [
   },
 ];
 
-export const routers = [...authRouters, ...protectedRouters];
+export const authRouters = commonRouters;
+export const routers = [...commonRouters, ...protectedRouters];
