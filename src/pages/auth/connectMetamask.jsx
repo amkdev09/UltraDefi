@@ -84,7 +84,7 @@ export default function ConnectMetamask() {
         setRegisterError(null);
         setIsRegistering(true);
         try {
-            await userService.registerReferral({ referralId: trimmed });
+            await userService.registerReferral({ referrer: trimmed });
             showSnackbar("Registration successful", "success");
             navigate(from, { replace: true });
         } catch (err) {
