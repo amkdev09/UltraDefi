@@ -13,13 +13,24 @@ const userServices = {
         const response = await api.post('/withdraw-income', body);
         return response.data;
     },
-
+    getCycleNumber: async () => {
+        const response = await api.get('/cycles', { requiresAuth: true });
+        return response.data;
+    },
     claimCapitalIncome: async (body) => {
         const response = await api.post('/withdraw-capital', body);
         return response.data;
     },
+    approveUsdt: async (body) => {
+        const response = await api.post('/approve-usdt', body);
+        return response.data;
+    },
     invest: async (body) => {
         const response = await api.post('/invest', body);
+        return response.data;
+    },
+    reinvest: async (body) => {
+        const response = await api.post('/reinvest', body);
         return response.data;
     },
     poolLiquidity: async () => {

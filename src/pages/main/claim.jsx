@@ -9,7 +9,6 @@ import { MdOutlineArrowBackIosNew } from "react-icons/md";
 import { useLocation, useNavigate } from "react-router-dom";
 
 export default function ClaimPage() {
-    const location = useLocation();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { showSnackbar } = useSnackbar();
@@ -21,10 +20,13 @@ export default function ClaimPage() {
         setSelectedClaim(claim);
     };
 
-    const { data: vaultSummary, isLoading } = useQuery({
-        queryKey: ["vaultSummary", address],
-        queryFn: () => userServices.getVaultSummary(),
+    const { data, isLoading } = useQuery({
+        queryKey: ["vaultSummary", "cycles", address],
+        queryFn: () => Promise.all([userServices.getVaultSummary(), userServices.getCycleNumber()]),
+        enabled: !!address,
     });
+    const [vaultSummary, cycles] = data ?? [];
+    const cycleIndex = cycles?.cycleNumber ?? 0;
 
     const amountToClaim = selectedClaim === "income" ? vaultSummary?.availableIncome : vaultSummary?.invested || 0;
 
@@ -37,7 +39,7 @@ export default function ClaimPage() {
         try {
             const fetchTx = selectedClaim === "income"
                 ? () => userServices.claimIncome()
-                : () => userServices.claimCapitalIncome();
+                : () => userServices.claimCapitalIncome({ cycleIndex });
             const txHash = await fetchAndBroadcast(fetchTx, address);
             showSnackbar("Transaction submitted. Hash: " + txHash.slice(0, 10) + "...", "success");
             queryClient.invalidateQueries({ queryKey: ["vaultSummary", address] });
@@ -49,7 +51,7 @@ export default function ClaimPage() {
         } finally {
             setClaimLoading(false);
         }
-    }, [address, selectedClaim, showSnackbar, queryClient]);
+    }, [address, selectedClaim, cycleIndex, showSnackbar, queryClient]);
 
     return (
         <main className="max-w-120 w-full mx-auto pt-12 px-4">
@@ -62,12 +64,12 @@ export default function ClaimPage() {
                 <h1 className="text-3xl tracking-widest text-center font-wavacorp uppercase text-shadow-purple-green">Claim</h1>
                 <p className="text-center text-sm uppercase tracking-[0.3em]">Claim your tokens here</p>
             </div>
-            <div class="glass-radio-group mt-5">
+            <div className="glass-radio-group mt-5">
                 <input type="radio" name="plan" id="glass-silver" checked={selectedClaim === "income"} onChange={() => handleSelectClaim("income")} />
-                <label for="glass-silver">Income</label>
+                <label htmlFor="glass-silver">Income</label>
                 <input type="radio" name="plan" id="glass-platinum" checked={selectedClaim === "capitalIncome"} onChange={() => handleSelectClaim("capitalIncome")} />
-                <label for="glass-platinum">Capital Income</label>
-                <div class="glass-glider"></div>
+                <label htmlFor="glass-platinum">Capital Income</label>
+                <div className="glass-glider"></div>
             </div>
             <div className="relative w-full overflow-hidden rounded-4xl border-[1.5px] border-selsila-purple mt-5">
                 <div className="relative w-full h-full">
@@ -84,7 +86,13 @@ export default function ClaimPage() {
                         <p className="text-sm text-gray-400 capitalize">{selectedClaim === "income" ? "Income" : "Capital Income"}</p>
                         <p className="text-2xl sm:text-4xl text-[#D9D9D9]">{isLoading ? "Loading..." : amountToClaim ? `$${amountToClaim}` : "$0"}</p>
                     </div>
-                    <div className="mt-auto flex justify-end text-sm">
+                    {selectedClaim === "capitalIncome" &&
+                        <div className="space-y-0.5 sm:space-y-2 mt-4 sm:mt-5">
+                            <p className="text-sm text-gray-400 capitalize">Cycle number</p>
+                            <p className="text-lg sm:text-2xl text-[#D9D9D9]">{isLoading ? "Loading..." : cycleIndex ? `${cycleIndex}` : "0"}</p>
+                        </div>
+                    }
+                    <div className="absolute bottom-6 right-6 mt-auto flex justify-end text-sm">
                         <button className="flex items-center gap-1 text-[#D9D9D9] text-sm cursor-pointer" id="headlessui-menu-button-«r2»" type="button" aria-haspopup="menu" aria-expanded="false" data-headlessui-state="">
                             Currency
                             <svg xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" className="iconify iconify--line-md" width="1em" height="1em" viewBox="0 0 24 24">

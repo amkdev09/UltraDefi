@@ -12,7 +12,13 @@ import NumberSpinner from "../../components/input/numberSpinner";
 export default function InvestPage() {
     const navigate = useNavigate();
     const address = useSelector((state) => state.userAuth?.address);
-    const [amountWei, setAmountWei] = useState(0);
+    const [amount, setAmount] = useState(1);
+    const [useOneDayCycle, setUseOneDayCycle] = useState(false);
+
+    const [selectedInvest, setSelectedInvest] = useState("invest");
+    const handleSelectInvest = (invest) => {
+        setSelectedInvest(invest);
+    };
 
     const [investLoading, setInvestLoading] = useState(false);
     const { showSnackbar } = useSnackbar();
@@ -28,11 +34,21 @@ export default function InvestPage() {
             showSnackbar("Connect your wallet first.", "error");
             return;
         }
+        if (!amount || amount <= 0) {
+            showSnackbar("Enter a valid investment amount.", "error");
+            return;
+        }
         setInvestLoading(true);
         try {
-            const fetchTx = () => userServices.invest({ amountWei: amountWei.toString() });
-            const txHash = await fetchAndBroadcast(fetchTx, address);
-            showSnackbar("Transaction submitted. Hash: " + txHash.slice(0, 10) + "...", "success");
+            const numericAmount = Number(amount);
+            const fetchApproveTx = () => userServices.approveUsdt({ amount: numericAmount });
+            const approveTxHash = await fetchAndBroadcast(fetchApproveTx, address);
+            showSnackbar("Approval submitted. Hash: " + approveTxHash.slice(0, 10) + "...", "success");
+
+            const fetchInvestTx = () => userServices.invest({ amount: numericAmount, useOneDayCycle: false });
+            const investTxHash = await fetchAndBroadcast(fetchInvestTx, address);
+            showSnackbar("Investment submitted. Hash: " + investTxHash.slice(0, 10) + "...", "success");
+
             queryClient.invalidateQueries({ queryKey: ["vaultSummary", address] });
         } catch (err) {
             const message = err?.code === ERROR_USER_REJECTED
@@ -42,8 +58,33 @@ export default function InvestPage() {
         } finally {
             setInvestLoading(false);
         }
-    }, [address, showSnackbar, queryClient]);
+    }, [address, amount, showSnackbar, queryClient]);
 
+    const handleReinvest = useCallback(async () => {
+        if (!address) {
+            showSnackbar("Connect your wallet first.", "error");
+            return;
+        }
+        if (!vaultSummary?.invested || Number(vaultSummary.invested) <= 0) {
+            showSnackbar("No invested amount available to reinvest.", "error");
+            return;
+        }
+        setInvestLoading(true);
+        try {
+            const amountToReinvest = Number(vaultSummary.invested);
+            const fetchTx = () => userServices.reinvest({ amount: amountToReinvest, useOneDayCycle });
+            const txHash = await fetchAndBroadcast(fetchTx, address);
+            showSnackbar("Reinvest submitted. Hash: " + txHash.slice(0, 10) + "...", "success");
+            queryClient.invalidateQueries({ queryKey: ["vaultSummary", address] });
+        } catch (err) {
+            const message = err?.code === ERROR_USER_REJECTED
+                ? "Transaction was rejected."
+                : err?.message ?? "Reinvest failed. Please try again.";
+            showSnackbar(message, "error");
+        } finally {
+            setInvestLoading(false);
+        }
+    }, [address, vaultSummary, useOneDayCycle, showSnackbar, queryClient]);
 
     return (
         <main className="max-w-120 w-full mx-auto pt-12 px-4">
@@ -56,13 +97,25 @@ export default function InvestPage() {
                 <h1 className="text-3xl tracking-widest text-center font-wavacorp uppercase text-shadow-purple-green">Invest</h1>
                 <p className="text-center text-sm uppercase tracking-[0.3em]">Invest your tokens here</p>
             </div>
-            {/* <div class="glass-radio-group mt-5">
-                <input type="radio" name="plan" id="glass-silver" checked={selectedClaim === "income"} onChange={() => handleSelectClaim("income")} />
-                <label for="glass-silver">Income</label>
-                <input type="radio" name="plan" id="glass-platinum" checked={selectedClaim === "capitalIncome"} onChange={() => handleSelectClaim("capitalIncome")} />
-                <label for="glass-platinum">Capital Income</label>
-                <div class="glass-glider"></div>
-            </div> */}
+            <div className="glass-radio-group mt-5">
+                <input
+                    type="radio"
+                    name="plan"
+                    id="glass-silver"
+                    checked={selectedInvest === "invest"}
+                    onChange={() => handleSelectInvest("invest")}
+                />
+                <label htmlFor="glass-silver">Invest</label>
+                <input
+                    type="radio"
+                    name="plan"
+                    id="glass-platinum"
+                    checked={selectedInvest === "reinvest"}
+                    onChange={() => handleSelectInvest("reinvest")}
+                />
+                <label htmlFor="glass-platinum">Reinvest</label>
+                <div className="glass-glider"></div>
+            </div>
             <div className="relative w-full overflow-hidden rounded-4xl border-[1.5px] border-selsila-purple mt-5">
                 <div className="relative w-full h-full">
                     <img loading="lazy" className="object-cover" src={abstractDistant} />
@@ -98,14 +151,46 @@ export default function InvestPage() {
                 <p className="text-sm break-all">{address || "Wallet address not set."}</p>
             </div>
             <div>
-                <NumberSpinner label="Enter Investment Amount" min={1} defaultValue={1} onChange={(value) => setAmountWei(value)} />
+                {selectedInvest === "reinvest" ? (
+                    <>
+                        <div className="flex items-center justify-start">
+                            <p className="text-sm text-gray-400 capitalize">
+                                Amount {vaultSummary?.invested ? `$${vaultSummary?.invested}` : "$0"} will be reinvested
+                            </p>
+                        </div>
+                        <div className="reinvest-checkbox-wrapper-46 mt-2">
+                            <input
+                                type="checkbox"
+                                id="cbx-46"
+                                className="inp-cbx"
+                                checked={useOneDayCycle}
+                                onChange={() => setUseOneDayCycle(!useOneDayCycle)}
+                            />
+                            <label htmlFor="cbx-46" className="cbx">
+                                <span>
+                                    <svg viewBox="0 0 12 10" height="10px" width="12px">
+                                        <polyline points="1.5 6 4.5 9 10.5 1"></polyline>
+                                    </svg>
+                                </span>
+                                <span>Use One Day Cycle</span>
+                            </label>
+                        </div>
+                    </>
+                ) : (
+                    <NumberSpinner
+                        label="Enter Investment Amount"
+                        min={1}
+                        defaultValue={amount}
+                        onChange={(value) => setAmount(value)}
+                    />
+                )}
                 <button
                     type="button"
-                    onClick={handleInvest}
+                    onClick={selectedInvest === "invest" ? handleInvest : handleReinvest}
                     disabled={investLoading}
                     className="w-full mt-5 bg-gradient-to-b from-[rgba(255,135,149,0.7)] to-[rgba(0,156,138,0.7)] font-wavacorp uppercase tracking-widest text-sm sm:text-base h-14 rounded-xl shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
-                    {investLoading ? "Confirm in wallet…" : "Invest"}
+                    {investLoading ? "Confirm in wallet…" : selectedInvest === "invest" ? "Invest" : "Reinvest"}
                 </button>
             </div>
         </main>
