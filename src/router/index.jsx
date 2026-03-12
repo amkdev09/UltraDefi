@@ -5,7 +5,6 @@ import AppLayout from "../layout";
 import { commonRouters, protectedRouters } from "./router.config";
 
 const AppRouter = () => {
-
   return (
     <div className="min-h-screen h-full relative overflow-hidden ">
       <div className="absolute -z-10 -top-[200px] -left-[420px] size-200 bg-[radial-gradient(50%_50%_at_50%_50%,rgba(45,239,216,0.45)_0%,rgba(118,33,220,0.018)_75%,rgba(105,21,206,0)_100%)]" />

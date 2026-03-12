@@ -10,7 +10,7 @@ const userServices = {
         return response.data;
     },
     claimIncome: async (body) => {
-        const response = await api.post('/withdraw-income', body);
+        const response = await api.post('/withdraw-income', body, { requiresAuth: true });
         return response.data;
     },
     getCycleNumber: async () => {
@@ -25,19 +25,19 @@ const userServices = {
         return response.data;
     },
     claimCapitalIncome: async (body) => {
-        const response = await api.post('/withdraw-capital', body);
+        const response = await api.post('/withdraw-capital', body, { requiresAuth: true });
         return response.data;
     },
     approveUsdt: async (body) => {
-        const response = await api.post('/approve-usdt', body);
+        const response = await api.post('/approve-usdt', body, { requiresAuth: true });
         return response.data;
     },
     invest: async (body) => {
-        const response = await api.post('/invest', body);
+        const response = await api.post('/invest', body, { requiresAuth: true });
         return response.data;
     },
     reinvest: async (body) => {
-        const response = await api.post('/reinvest', body);
+        const response = await api.post('/reinvest', body, { requiresAuth: true });
         return response.data;
     },
     poolLiquidity: async () => {

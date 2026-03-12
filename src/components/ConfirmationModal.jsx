@@ -8,7 +8,6 @@ import {
   Typography,
   Box,
 } from "@mui/material";
-import { AppColors } from "../constant/appColors";
 
 const ConfirmationModal = ({
   open,
@@ -67,10 +66,10 @@ const ConfirmationModal = ({
         }}
       >
         <Typography
-          variant="body1"
           sx={{
-            color: AppColors.TXT_MAIN,
-            fontSize: { xs: "1rem", sm: "1.25rem", md: "1.5rem", lg: "1.75rem" },
+            color: "var(--color-white)",
+            fontFamily: "var(--font-spinnaker)",
+            fontSize: "var(--text-lg)",
           }}
         >
           {title}
@@ -79,9 +78,10 @@ const ConfirmationModal = ({
 
       <DialogContent sx={{ pt: 3, pb: 2 }}>
         <Typography
-          variant="body1"
           sx={{
-            color: AppColors.TXT_SUB,
+            color: "var(--color-gray-400)",
+            fontFamily: "var(--font-spinnaker)",
+            fontSize: "var(--text-base)",
           }}
         >
           {description}
@@ -99,12 +99,13 @@ const ConfirmationModal = ({
           onClick={handleCancel}
           disabled={loading}
           sx={{
-            color: AppColors.TXT_SUB,
+            color: "var(--color-gray-400)",
             textTransform: "none",
-            px: 3,
+            fontFamily: "var(--font-spinnaker)",
+            fontSize: "var(--text-sm)",
             "&:hover": {
               bgcolor: "rgba(255, 255, 255, 0.06)",
-              color: AppColors.TXT_MAIN,
+              color: "var(--color-foreground)",
             },
           }}
         >
@@ -117,7 +118,8 @@ const ConfirmationModal = ({
             bgcolor: "var(--color-selsila-green, #009c8f)",
             color: "#fff",
             textTransform: "none",
-            px: 3,
+            fontFamily: "var(--font-spinnaker)",
+            fontSize: "var(--text-sm)",
             "&:hover": {
               bgcolor: "var(--color-selsila-green, #009c8f)",
               filter: "brightness(0.9)",

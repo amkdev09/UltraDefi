@@ -2,16 +2,14 @@ import React, { useState } from "react";
 import abstractDistant from "../../assets/images/abstract-distant.webp";
 import userServices from "../../services/userServices";
 import { useQuery } from "@tanstack/react-query";
-import { useSelector } from "react-redux";
-import { useAuth } from "../../hooks/useAuth";
+import useAuth from "../../hooks/useAuth";
 import { copyToClipboard } from "../../utils/utils";
 import { GiCheckMark } from "react-icons/gi";
 import { useNavigate } from "react-router-dom";
 
 export default function AirdropPage() {
-    const address = useSelector((state) => state.userAuth?.address);
+    const { address, refferalLink } = useAuth();
     const navigate = useNavigate();
-    const { refferalLink } = useAuth();
     const [copied, setCopied] = useState(false);
 
     const handleCopyReferralLink = async () => {
@@ -45,10 +43,8 @@ export default function AirdropPage() {
                             <img loading="lazy" className="object-cover" src={abstractDistant} />
                         </div>
                         <div className="absolute inset-0 p-6 sm:p-8 flex flex-col">
-                            <div className="grid grid-cols-2 gap-4 mb-5">
-                                <div className="flex items-center">
-                                    <p className="text-base text-[#D9D9D9]">Amk</p>
-                                </div>
+                            <div className="flex items-center justify-between mb-4">
+                                <p className="text-base text-[#D9D9D9]">Amk</p>
                                 <p className="font-wavacorp text-lg tracking-[0.15em]">UltraDefi</p>
                             </div>
                             <div className="space-y-0.5 sm:space-y-2 mt-4 sm:mt-5">

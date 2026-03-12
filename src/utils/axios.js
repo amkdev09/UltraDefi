@@ -1,5 +1,6 @@
 import axios from "axios";
-import { store } from "../store/store";
+import Cookies from "js-cookie";
+import { decryptData } from "./encryption";
 
 const api = axios.create({
   baseURL: `${import.meta.env.VITE_API_BASE_URL}/vault`,
@@ -12,8 +13,21 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     if (config.requiresAuth) {
-      const address = store.getState()?.userAuth?.address;
-      const isRegistered = store.getState()?.userAuth?.isRegistered;
+      const storedAddress = Cookies.get("address");
+
+      let address = null;
+      if (storedAddress) {
+        // Handle both legacy unencoded values and new encodeURIComponent values
+        let cipherText = storedAddress;
+        try {
+          cipherText = decodeURIComponent(storedAddress);
+        } catch {
+          // If it's not URI-encoded, just use the raw value
+          cipherText = storedAddress;
+        }
+        address = decryptData(cipherText);
+      }
+      const isRegistered = Cookies.get("isRegistered") === "true";
       const isPost = config.method?.toLowerCase() === "post";
       if (isPost && !isRegistered) {
         return window.location.href = "/connect-metamask?reason=required-registration";

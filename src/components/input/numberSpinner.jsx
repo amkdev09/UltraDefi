@@ -1,15 +1,10 @@
 import * as React from 'react';
-import PropTypes from 'prop-types';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import FormControl from '@mui/material/FormControl';
-import FormLabel from '@mui/material/FormLabel';
-import FormHelperText from '@mui/material/FormHelperText';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import OutlinedInput from '@mui/material/OutlinedInput';
-import { AppColors } from '../../constant/appColors';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 function NumberSpinner({
   id: idProp,
@@ -154,15 +149,15 @@ function NumberSpinner({
       sx={{
         maxWidth: '100%',
         '& .MuiButton-root': {
-          borderColor: AppColors.HLT_NONE,
+          borderColor: "var(--color-gray-400)",
           minWidth: 0,
-          color: AppColors.TXT_MAIN,
+          color: "var(--color-white)",
           '&:hover': {
-            borderColor: AppColors.GOLD_PRIMARY,
+            borderColor: "var(--color-gold-primary)",
           },
           '&.Mui-disabled': {
-            borderColor: AppColors.HLT_NONE,
-            color: AppColors.TXT_SUB,
+            borderColor: "var(--color-gray-400)",
+            color: "var(--color-gray-400)",
             opacity: 0.5,
           },
         },
@@ -176,10 +171,10 @@ function NumberSpinner({
         borderRadius: 2,
         overflow: 'hidden',
         borderColor: showError
-          ? AppColors.ERROR
+          ? "var(--color-red-500)"
           : showSuccess
-            ? AppColors.SUCCESS
-            : AppColors.HLT_NONE,
+            ? "var(--color-green-500)"
+            : "var(--color-gray-400)",
       }}>
         <OutlinedInput
           id={id}
@@ -212,7 +207,7 @@ function NumberSpinner({
             px: 0,
             py: 0.25,
             bgcolor: "transparent",
-            color: AppColors.TXT_MAIN,
+            color: "var(--color-white)",
             '& fieldset': {
               border: 'none !important',
             },
@@ -263,7 +258,7 @@ function NumberSpinner({
             disabled={disabled || isMaxDisabled}
             sx={{
               borderLeft: '1px solid',
-              borderColor: AppColors.HLT_NONE,
+              borderColor: "var(--color-gray-400)",
               borderRadius: 0,
               minWidth: 32,
               px: 1,

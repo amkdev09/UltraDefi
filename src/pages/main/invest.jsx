@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSelector } from "react-redux";
 import userServices from "../../services/userServices";
 import { fetchAndBroadcast, ERROR_USER_REJECTED } from "../../lib/broadcastTransaction";
 import useSnackbar from "../../hooks/useSnackbar";
@@ -8,10 +7,11 @@ import abstractDistant from "../../assets/images/abstract-distant.webp";
 import { MdOutlineArrowBackIosNew } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import NumberSpinner from "../../components/input/numberSpinner";
+import useAuth from "../../hooks/useAuth";
 
 export default function InvestPage() {
     const navigate = useNavigate();
-    const address = useSelector((state) => state.userAuth?.address);
+    const { address } = useAuth();
     const [amount, setAmount] = useState(1);
     const [useOneDayCycle, setUseOneDayCycle] = useState(false);
 

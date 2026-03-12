@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSelector } from "react-redux";
 import iphone from "../../assets/images/iphone16.webp";
 import userServices from "../../services/userServices";
 import { fetchAndBroadcast, ERROR_USER_REJECTED } from "../../lib/broadcastTransaction";
@@ -17,8 +16,7 @@ function formatCurrency(value) {
 }
 
 export default function RewardPage() {
-    const address = useSelector((state) => state.userAuth?.address);
-    const { refferalLink } = useAuth();
+    const { address, refferalLink } = useAuth();
     const { showSnackbar } = useSnackbar();
     const queryClient = useQueryClient();
     const [claimRank6Loading, setClaimRank6Loading] = useState(false);

@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { useSelector } from "react-redux";
 import userServices from "../../services/userServices";
 import NumberSpinner from "../input/numberSpinner";
 import { useNavigate } from "react-router-dom";
+import useAuth from "../../hooks/useAuth";
 
 function formatCurrency(value) {
     if (value == null || Number.isNaN(Number(value))) return "$0";
@@ -14,7 +14,7 @@ function formatCurrency(value) {
 
 export default function InvestmentCalculator() {
     const navigate = useNavigate();
-    const address = useSelector((state) => state.userAuth?.address);
+    const { address } = useAuth();
     const [amount, setAmount] = useState("");
     const [useOneDayCycle, setUseOneDayCycle] = useState(false);
     const [simulation, setSimulation] = useState(null);
@@ -22,7 +22,7 @@ export default function InvestmentCalculator() {
     const [isError, setIsError] = useState(false);
     const [error, setError] = useState(null);
 
-    const canSimulate = !!address
+    const canSimulate = !!(address);
 
     const handleSimulate = async () => {
         try {
@@ -88,7 +88,7 @@ export default function InvestmentCalculator() {
                     label="Investment value (USDT)"
                     placeholder="Enter value"
                     min={1}
-                    defaultValue=""
+                    defaultValue={amount}
                     onChange={(v) => setAmount(v)}
                 />
                 <div className="reinvest-checkbox-wrapper-46 mt-2">
@@ -108,12 +108,12 @@ export default function InvestmentCalculator() {
                         <span className="text-sm text-gray-300 cursor-pointer">Use One Day Cycle</span>
                     </label>
                 </div>
-                <div className="flex justify-start">
+                <div className="flex md:justify-start flex-1">
                     <button
                         type="button"
                         onClick={() => canSimulate && handleSimulate()}
                         disabled={!canSimulate || isLoading}
-                        className="inline-flex items-center justify-center gap-2 px-6 h-10 min-w-[140px] bg-[linear-gradient(180deg,#D9D9D9_0%,#009C8A_100%)] text-black uppercase text-base rounded-full border-0 relative z-10 shadow-lg transition-all duration-300 tracking-wider disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:brightness-110"
+                        className="inline-flex items-center justify-center gap-2 px-6 h-10 w-full md:w-auto bg-[linear-gradient(180deg,#D9D9D9_0%,#009C8A_100%)] text-black uppercase text-base rounded-full border-0 relative z-10 shadow-lg transition-all duration-300 tracking-wider disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:brightness-110"
                     >
                         {isLoading ? (
                             <>

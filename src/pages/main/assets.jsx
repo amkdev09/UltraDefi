@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
 import useSnackbar from "../../hooks/useSnackbar";
 import ConfirmationModal from "../../components/ConfirmationModal.jsx";
+import getMetaMaskSDK from "../../lib/metamaskSDK.js";
 
 export default function ProfilePage() {
     const navigate = useNavigate();
-    const { refferalLink, address } = useAuth();
-    const { disconnectMetaMask } = useAuth();
+    const { address, clearAddress, refferalLink } = useAuth();
     const { showSnackbar } = useSnackbar();
     const [logoutModalOpen, setLogoutModalOpen] = useState(false);
     const [logoutLoading, setLogoutLoading] = useState(false);
@@ -19,8 +19,32 @@ export default function ProfilePage() {
     const handleLogoutConfirm = useCallback(async () => {
         setLogoutLoading(true);
         try {
-            await disconnectMetaMask();
-            showSnackbar("You have been logged out successfully.", "success");
+            const MMSDK = getMetaMaskSDK();
+            const provider = MMSDK?.getProvider ? MMSDK.getProvider() : null;
+
+            // Best-effort revoke; not all environments support this method.
+            if (provider?.request) {
+                try {
+                    await provider.request({
+                        method: 'wallet_revokePermissions',
+                        params: [{ eth_accounts: {} }],
+                    });
+                } catch {
+                    // Ignore revoke failures and still clear local session.
+                }
+            }
+
+            // Terminate the SDK session where supported (desktop/mobile).
+            if (MMSDK?.terminate) {
+                try {
+                    MMSDK.terminate();
+                } catch {
+                    // Ignore SDK termination failures.
+                }
+            }
+
+            clearAddress();
+            showSnackbar("Disconnected successfully.", "success");
             setLogoutModalOpen(false);
             navigate("/connect-metamask", { replace: true });
         } catch {
@@ -28,7 +52,7 @@ export default function ProfilePage() {
         } finally {
             setLogoutLoading(false);
         }
-    }, [disconnectMetaMask, showSnackbar, navigate]);
+    }, [clearAddress, showSnackbar, navigate]);
 
     return (
         <main className="max-w-120 w-full mx-auto pt-12 px-4">
@@ -53,7 +77,7 @@ export default function ProfilePage() {
                         <div className="relative size-16 sm:size-20 rounded-full overflow-hidden bg-white/5 mb-4">
                             <div className="absolute inset-0 flex items-center justify-center text-white/35">
                                 <svg
-                                    xmlns="http://www.w3.org/2000/svg"a
+                                    xmlns="http://www.w3.org/2000/svg" a
                                     aria-hidden="true"
                                     viewBox="0 0 24 24"
                                     fill="currentColor"

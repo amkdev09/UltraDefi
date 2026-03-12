@@ -6,8 +6,9 @@ import metaMaskIcon from "../../assets/svg/metamask.svg";
 import userService from "../../services/userServices";
 import { fetchAndBroadcast, ERROR_USER_REJECTED } from "../../lib/broadcastTransaction";
 import { MdOutlineArrowBackIosNew } from "react-icons/md";
-import { useDispatch } from "react-redux";
-import { setIsRegistered } from "../../store/slices/userAuthSlice";
+import getMetaMaskSDK from "../../lib/metamaskSDK";
+import { encryptData } from "../../utils/encryption";
+import Cookies from "js-cookie";
 
 const META_MASK_DOWNLOAD_URL = "https://metamask.io/download/";
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
@@ -15,8 +16,7 @@ const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
 export default function ConnectMetamask() {
     const navigate = useNavigate();
     const location = useLocation();
-    const dispatch = useDispatch();
-    const { address, isConnected, connectMetaMask } = useAuth();
+    const { address } = useAuth();
     const { showSnackbar } = useSnackbar();
 
     const [searchParams] = useSearchParams();
@@ -26,34 +26,34 @@ export default function ConnectMetamask() {
 
     const [isConnecting, setIsConnecting] = useState(false);
     const [error, setError] = useState(null);
-    const [needsRegistration, setNeedsRegistration] = useState(reason === "required-registration" ? true : null);
+    const [needsRegistration, setNeedsRegistration] = useState(false);
     const [sponsorAddress, setSponsorAddress] = useState("");
     const [isRegistering, setIsRegistering] = useState(false);
     const [registerError, setRegisterError] = useState(null);
-
-
-    const checkSummaryAndNavigate = useCallback(async () => {
-        try {
-            const userSummary = await userService.getVaultSummary();
-            if (userSummary?.registered) {
-                dispatch(setIsRegistered({ isRegistered: true }));
-                navigate(from, { replace: true });
-                showSnackbar("Wallet connected", "success");
-            } else {
-                setNeedsRegistration(true);
-            }
-        } catch {
-            setNeedsRegistration(true);
-        }
-    }, [navigate, from, showSnackbar, dispatch]);
 
     const handleConnect = useCallback(async () => {
         setError(null);
         setIsConnecting(true);
         try {
-            await connectMetaMask();
-            showSnackbar("Wallet connected successfully", "success");
-            await checkSummaryAndNavigate();
+            const MMSDK = getMetaMaskSDK();
+            const accounts = await MMSDK.connect();
+            if (accounts?.length > 0) {
+                const connectedAddress = accounts[0];
+                Cookies.set("address", encodeURIComponent(encryptData(connectedAddress)));
+                showSnackbar("Wallet connected successfully", "success");
+                // If user was forced here because registration is required,
+                // check registration status after connecting. Otherwise,
+                // just return to the previous / main page.
+                const userSummary = await userService.getVaultSummary();
+                if (userSummary?.registered) {
+                    Cookies.set("isRegistered", "true");
+                    navigate(from, { replace: true });
+                    showSnackbar("Wallet connected", "success");
+                } else {
+                    setNeedsRegistration(true);
+                }
+                return connectedAddress;
+            }
         } catch (err) {
             const message =
                 err.message === "Connection rejected by user"
@@ -66,17 +66,35 @@ export default function ConnectMetamask() {
         } finally {
             setIsConnecting(false);
         }
-    }, [connectMetaMask, showSnackbar, checkSummaryAndNavigate]);
+    }, [showSnackbar, from, navigate, reason]);
 
     useEffect(() => {
         if (referralId) setSponsorAddress(referralId);
     }, [referralId]);
 
     useEffect(() => {
-        if (isConnected && needsRegistration === null) {
-            checkSummaryAndNavigate();
+        // If a wallet is already connected (address is in cookies) and the
+        // user was redirected here because registration is required,
+        // check their registration status once on mount.
+        const checkExistingConnection = async () => {
+            try {
+                const userSummary = await userService.getVaultSummary();
+                if (userSummary?.registered) {
+                    Cookies.set("isRegistered", "true");
+                    navigate(from, { replace: true });
+                } else {
+                    setNeedsRegistration(true);
+                }
+            } catch {
+                // If we can't get the summary, fall back to showing registration form.
+                setNeedsRegistration(true);
+            }
+        };
+
+        if (reason === "required-registration" && address) {
+            checkExistingConnection();
         }
-    }, [isConnected, needsRegistration, checkSummaryAndNavigate]);
+    }, [reason, address, navigate, from]);
 
     const handleRegister = useCallback(async () => {
         const trimmed = sponsorAddress?.trim();
@@ -105,7 +123,7 @@ export default function ConnectMetamask() {
                     : "Registration successful",
                 "success"
             );
-            dispatch(setIsRegistered({ isRegistered: true }));
+            Cookies.set("isRegistered", "true");
             navigate(from, { replace: true });
         } catch (err) {
             const message =
@@ -114,7 +132,7 @@ export default function ConnectMetamask() {
                     : err?.message || err?.error || "Registration failed";
             setRegisterError(message);
             showSnackbar(message, "error");
-            dispatch(setIsRegistered({ isRegistered: false }));
+            Cookies.remove("isRegistered");
         } finally {
             setIsRegistering(false);
         }
@@ -146,14 +164,14 @@ export default function ConnectMetamask() {
                     <button
                         type="button"
                         onClick={handleConnect}
-                        disabled={isConnecting || isConnected}
+                        disabled={isConnecting || address}
                         className="w-full py-3 px-4 bg-[var(--color-selsila-green)] text-white font-semibold rounded-lg hover:bg-[var(--color-selsila-green)]/90 focus:outline-none focus:ring-2 focus:ring-selsila-green focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-3"
                     >
                         <figure className="w-6 h-6 shrink-0">
                             <img src={metaMaskIcon} alt="MetaMask" />
                         </figure>
                         <span>
-                            {isConnecting ? "Connecting…" : isConnected ? "Connected" : "Connect with MetaMask"}
+                            {isConnecting ? "Connecting…" : address ? "Connected" : "Connect with MetaMask"}
                         </span>
                     </button>
 

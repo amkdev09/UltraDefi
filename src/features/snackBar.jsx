@@ -1,6 +1,5 @@
 import React, { createContext, useState, useCallback } from "react";
 import { Snackbar, Alert } from "@mui/material";
-import { FONT_SIZE } from "../constant/lookUpConstant";
 
 const defaultSnackbarContext = { showSnackbar: () => {} };
 const SnackbarContext = createContext(defaultSnackbarContext);
@@ -32,7 +31,7 @@ export const SnackbarProvider = ({ children }) => {
         <Alert
           severity={snack.severity}
           onClose={handleClose}
-          sx={{ width: "100%", fontSize: FONT_SIZE.BODY }}
+          sx={{ width: "100%", fontSize: "var(--text-base)" }}
           elevation={6}
           variant="filled"
         >
