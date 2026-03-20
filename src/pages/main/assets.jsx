@@ -4,6 +4,9 @@ import useAuth from "../../hooks/useAuth";
 import useSnackbar from "../../hooks/useSnackbar";
 import ConfirmationModal from "../../components/ConfirmationModal.jsx";
 import getMetaMaskSDK from "../../lib/metamaskSDK.js";
+import { CiWallet } from "react-icons/ci";
+import userServices from "../../services/userServices";
+import { useQuery } from "@tanstack/react-query";
 
 export default function ProfilePage() {
     const navigate = useNavigate();
@@ -11,6 +14,11 @@ export default function ProfilePage() {
     const { showSnackbar } = useSnackbar();
     const [logoutModalOpen, setLogoutModalOpen] = useState(false);
     const [logoutLoading, setLogoutLoading] = useState(false);
+
+    const { data: vaultSummary, isLoading } = useQuery({
+        queryKey: ["vaultSummary", address],
+        queryFn: () => userServices.getVaultSummary(),
+    })
 
     const handleLogoutClick = useCallback(() => {
         setLogoutModalOpen(true);
@@ -60,49 +68,18 @@ export default function ProfilePage() {
                 <h1 className="text-2xl sm:text-3xl tracking-widest text-center font-wavacorp uppercase text-shadow-purple-green">Assets</h1>
                 <p className="text-center text-sm sm:text-base leading-6">Manage your assets information.</p>
             </div>
-            {/* <div className="mb-6 w-full bg-orange-500/20 backdrop-blur-md rounded-2xl border border-orange-500/30 p-4">
-                <div className="flex items-start gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" className="iconify iconify--solar size-5 text-orange-500 shrink-0" width="1em" height="1em" viewBox="0 0 24 24">
-                        <path fill="currentColor" fillRule="evenodd" d="M5.312 10.762C8.23 5.587 9.689 3 12 3s3.77 2.587 6.688 7.762l.364.644c2.425 4.3 3.638 6.45 2.542 8.022S17.786 21 12.364 21h-.728c-5.422 0-8.134 0-9.23-1.572s.117-3.722 2.542-8.022zM12 7.25a.75.75 0 0 1 .75.75v5a.75.75 0 0 1-1.5 0V8a.75.75 0 0 1 .75-.75M12 17a1 1 0 1 0 0-2a1 1 0 0 0 0 2" clipRule="evenodd"></path>
-                    </svg>
-                    <div className="space-y-2.5">
-                        <p className="text-sm text-orange-400/90">Complete KYC verification before claiming your tokens.</p>
-                        <a className="block text-orange-500 hover:underline font-semibold text-xs" href="/profile/kyc">Verify Now →</a>
-                    </div>
-                </div>
-            </div> */}
             <div className="space-y-6">
                 <div className="relative w-full bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 p-6">
                     <div className="flex flex-col items-center text-center mb-6">
                         <div className="relative size-16 sm:size-20 rounded-full overflow-hidden bg-white/5 mb-4">
                             <div className="absolute inset-0 flex items-center justify-center text-white/35">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg" a
-                                    aria-hidden="true"
-                                    viewBox="0 0 24 24"
-                                    fill="currentColor"
-                                    className="size-9 sm:size-11"
-                                >
-                                    <path d="M12 12a4 4 0 1 0-4-4a4 4 0 0 0 4 4" />
-                                    <path d="M4 20a8 8 0 0 1 16 0v1H4z" />
-                                </svg>
+                                <CiWallet className="text-5xl text-white/50" />
                             </div>
-                            {/* <img
-                                alt="Profile"
-                                loading="lazy"
-                                decoding="async"
-                                data-nimg="fill"
-                                className="object-cover"
-                                sizes="100vw"
-                                src={userProfile}
-                                style={{ position: 'absolute', height: '100%', width: '100%', inset: 0, color: 'transparent' }}
-                            /> */}
                         </div>
                         <div className="min-w-0 w-full">
                             <div className="flex items-center justify-center gap-1.5 mb-1">
-                                <h2 className="text-lg font-medium text-white truncate">Amk</h2>
+                                <h2 className="text-lg font-medium text-white truncate">{isLoading ? "Loading..." : vaultSummary?.availableIncome ? `$${vaultSummary?.availableIncome}` : "$0"}</h2>
                             </div>
-                            <p className="text-sm text-[#D9D9D9] truncate">amar@corazor.com</p>
                         </div>
                     </div>
                     <div className="space-y-5 pt-5 border-t border-white/10">

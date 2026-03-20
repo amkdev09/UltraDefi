@@ -44,7 +44,7 @@ export default function AirdropPage() {
                         </div>
                         <div className="absolute inset-0 p-6 sm:p-8 flex flex-col">
                             <div className="flex items-center justify-between mb-4">
-                                <p className="text-base text-[#D9D9D9]">Amk</p>
+                                <p className="text-base text-[#D9D9D9]">Rank: {isLoading ? "Loading..." : vaultSummary?.rank ?? "0"}</p>
                                 <p className="font-wavacorp text-lg tracking-[0.15em]">UltraDefi</p>
                             </div>
                             <div className="space-y-0.5 sm:space-y-2 mt-4 sm:mt-5">

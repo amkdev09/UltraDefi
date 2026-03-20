@@ -48,8 +48,12 @@ const userServices = {
         const response = await api.get('/pool-position-value');
         return response.data;
     },
-    transactionHistory: async (fromBlock = 0, toBlock = 0, limit = 50) => {
-        const response = await api.get(`/transaction-history?fromBlock=&toBlock=&limit=${limit}`, { requiresAuth: true });
+    /** Paginated transaction log (Invest, Reinvest, WithdrawIncome, WithdrawCapital). */
+    getTransactionLogs: async ({ limit = 50, offset = 0 } = {}) => {
+        const response = await api.get('/transaction-logs', {
+            requiresAuth: true,
+            params: { limit: Number(limit), offset: Number(offset) },
+        });
         return response.data;
     },
     getRoi: async () => {

@@ -1,12 +1,19 @@
-import React from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import userServices from "../../services/userServices";
 import { MdOutlineArrowBackIosNew } from "react-icons/md";
 
-/**
- * Format number with commas (e.g. 64297.10 → "64,297.10")
- */
+const PAGE_SIZE = 20;
+
+/** txType from API: 1=Invest, 2=Reinvest, 3=WithdrawIncome, 4=WithdrawCapital */
+const TX_TYPE_LABELS = {
+    1: "Invest",
+    2: "Reinvest",
+    3: "Withdraw Income",
+    4: "Withdraw Capital",
+};
+
 function formatNumber(val) {
     if (val == null || val === "") return "—";
     const num = Number(val);
@@ -17,9 +24,6 @@ function formatNumber(val) {
     });
 }
 
-/**
- * Format timestamp to "DD. MM HH:mm:ss"
- */
 function formatDateTime(timestamp) {
     if (timestamp == null || timestamp === "") return "—";
     const date = new Date(
@@ -28,71 +32,100 @@ function formatDateTime(timestamp) {
     if (Number.isNaN(date.getTime())) return String(timestamp);
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
     const hh = String(date.getHours()).padStart(2, "0");
     const mm = String(date.getMinutes()).padStart(2, "0");
     const ss = String(date.getSeconds()).padStart(2, "0");
-    return `${day}. ${month} ${hh}:${mm}:${ss}`;
+    return `${day}.${month}.${year} ${hh}:${mm}:${ss}`;
 }
 
-/**
- * Normalize transaction item from API (supports multiple field naming conventions)
- */
-function normalizeTx(tx) {
-    if (!tx || typeof tx !== "object") return null;
-    return {
-        symbol: tx.symbol ?? tx.pair ?? tx.asset ?? "—",
-        amount: tx.amount ?? tx.amountUsdt ?? tx.size ?? 0,
-        entryPrice: tx.entryPrice ?? tx.entry ?? 0,
-        closePrice: tx.closePrice ?? tx.close ?? tx.exitPrice ?? 0,
-        pnl: tx.pnl ?? tx.pnlUsdt ?? tx.profit ?? 0,
-        pnlRate: tx.pnlRate ?? tx.roi ?? tx.rate ?? 0,
-        openTime: tx.openTime ?? tx.openAt ?? tx.createdAt ?? null,
-        closeTime: tx.closeTime ?? tx.closedAt ?? tx.updatedAt ?? null,
-        status: (tx.status ?? tx.result ?? "").toLowerCase(),
-    };
+function getTxTypeLabel(txType) {
+    return TX_TYPE_LABELS[txType] ?? `Type ${txType}`;
 }
 
-const ArrowUpIcon = () => (
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        className="size-4 shrink-0 text-[var(--color-selsila-green)]"
-    >
-        <path d="M7 14l5-5 5 5H7z" />
-    </svg>
-);
+/** Single row: timestamp, txType, amount, cycleNumber (API response shape) */
+function TransactionCard({ entry, index }) {
+    const typeLabel = getTxTypeLabel(entry.txType);
+    const isWithdraw = entry.txType === 3 || entry.txType === 4;
+    const isInvest = entry.txType === 1 || entry.txType === 2;
 
-const defaultTransaction = [{
-    symbol: "BTC",
-    amount: 100,
-    pnl: 100,
-    pnlRate: 100,
-    entryPrice: 100,
-    closePrice: 100,
-    closeTime: "2021-01-01 12:00:00",
-}];
+    return (
+        <div
+            className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden"
+            data-testid={`transaction-entry-${index}`}
+        >
+            <div className="p-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4 sm:gap-y-0">
+                <div>
+                    <p className="text-xs text-[#D9D9D9] mb-0.5">Type</p>
+                    <p className="text-sm font-medium text-white">{typeLabel}</p>
+                </div>
+                <div>
+                    <p className="text-xs text-[#D9D9D9] mb-0.5">Amount (USDT)</p>
+                    <p
+                        className={`text-sm font-medium ${
+                            isInvest ? "text-[var(--color-selsila-green)]" : "text-sky-400"
+                        }`}
+                    >
+                        {isWithdraw ? "−" : "+"}
+                        {formatNumber(entry.amount)}
+                    </p>
+                </div>
+                <div>
+                    <p className="text-xs text-[#D9D9D9] mb-0.5">Date & Time</p>
+                    <p className="text-sm text-white">{formatDateTime(entry.timestamp)}</p>
+                </div>
+                <div>
+                    <p className="text-xs text-[#D9D9D9] mb-0.5">Cycle</p>
+                    <p className="text-sm text-white">
+                        {entry.cycleNumber != null && entry.cycleNumber !== ""
+                            ? `#${entry.cycleNumber}`
+                            : "—"}
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function TransactionHistory() {
     const navigate = useNavigate();
-    const data = defaultTransaction;
-    const isLoading = false;
-    // const { data = defaultTransaction, isLoading } = useQuery({
-    //     queryKey: ["transactionHistory"],
-    //     queryFn: () => userServices.transactionHistory(),
-    // });
+    const [offset, setOffset] = useState(0);
 
-    const transactions = React.useMemo(() => {
-        const raw = Array.isArray(data) ? data : data?.transactions ?? data?.data ?? [];
-        return raw.map(normalizeTx).filter(Boolean);
-    }, [data]);
+    const {
+        data,
+        isLoading,
+        isError,
+        error,
+        isFetching,
+        refetch,
+    } = useQuery({
+        queryKey: ["transactionLogs", offset],
+        queryFn: () => userServices.getTransactionLogs({ limit: PAGE_SIZE, offset }),
+        staleTime: 60 * 1000,
+        placeholderData: (prev) => prev,
+    });
+
+    const { entries = [], total = 0, limit = PAGE_SIZE } = data ?? {};
+    const hasMore = offset + entries.length < total;
+    const currentCount = offset + entries.length;
+
+    const goNext = useCallback(() => {
+        setOffset((o) => o + PAGE_SIZE);
+    }, []);
+
+    const goPrev = useCallback(() => {
+        setOffset((o) => Math.max(0, o - PAGE_SIZE));
+    }, []);
+
+    const showPagination = total > PAGE_SIZE;
+    const isLoadingOrFetching = isLoading || isFetching;
 
     return (
-        <main className="max-w-120 w-full mx-auto pt-4 px-4">
+        <main className="max-w-120 w-full mx-auto pt-4 px-4 pb-8">
             <div className="flex justify-start">
                 <button
                     type="button"
-                    className="cursor-pointer"
+                    className="cursor-pointer p-1 -m-1"
                     onClick={() => navigate(-1)}
                     aria-label="Go back"
                 >
@@ -102,85 +135,83 @@ export default function TransactionHistory() {
 
             <div className="space-y-3 mt-3">
                 <h1 className="text-3xl tracking-widest text-center font-wavacorp uppercase text-shadow-purple-green">
-                    Transaction
+                    Transaction History
                 </h1>
                 <p className="text-center text-sm uppercase tracking-[0.3em] text-[#D9D9D9]">
-                    Your past transactions
+                    Invest, reinvest & withdrawal logs
                 </p>
             </div>
 
             <div className="mt-8 space-y-4">
-                {isLoading ? (
-                    <div className="flex justify-center py-12">
-                        <p className="text-[#D9D9D9]">Loading...</p>
+                {isLoading && !data ? (
+                    <div className="flex flex-col items-center justify-center py-16 gap-3">
+                        <div className="w-10 h-10 border-2 border-[var(--color-selsila-green)] border-t-transparent rounded-full animate-spin" />
+                        <p className="text-[#D9D9D9]">Loading transactions…</p>
                     </div>
-                ) : transactions.length === 0 ? (
-                    <div className="rounded-2xl border border-selsila-purple bg-white/5 backdrop-blur-md p-8 text-center">
+                ) : isError ? (
+                    <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-center">
+                        <p className="text-red-300 font-medium">Failed to load transactions</p>
+                        <p className="text-sm text-red-200/80 mt-1">
+                            {error?.message ?? "Something went wrong."}
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => refetch()}
+                            className="mt-4 px-4 py-2 rounded-lg bg-[var(--color-selsila-green)] text-white text-sm font-medium hover:opacity-90"
+                        >
+                            Try again
+                        </button>
+                    </div>
+                ) : !entries.length ? (
+                    <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-12 text-center">
                         <p className="text-[#D9D9D9]">No transactions yet</p>
+                        <p className="text-sm text-[#D9D9D9]/80 mt-1">
+                            Your invest, reinvest and withdrawal history will appear here.
+                        </p>
                     </div>
                 ) : (
-                    transactions.map((tx, idx) => {
-                        const isWin = tx.status === "win" || (tx.pnl > 0 && tx.status !== "lose");
-                        const winClass = "text-[var(--color-selsila-green)]";
-                        const loseClass = "text-red-400";
+                    <>
+                        <p className="text-xs text-[#D9D9D9]">
+                            Showing {currentCount} of {total} entries
+                        </p>
+                        <ul className="space-y-3 list-none p-0 m-0">
+                            {entries.map((entry, idx) => (
+                                <li key={`${entry.timestamp}-${idx}-${entry.txType}-${entry.amount}`}>
+                                    <TransactionCard entry={entry} index={offset + idx} />
+                                </li>
+                            ))}
+                        </ul>
 
-                        return (
-                            <div
-                                key={tx.symbol + idx}
-                                className="border-b rounded-lg shadow-md bg-white/5 backdrop-blur-md overflow-hidden"
-                            >
-                                {/* Details grid */}
-                                <div className="p-4 grid grid-cols-2 gap-x-6 gap-y-4">
-                                    <div>
-                                        <p className="text-xs text-[#D9D9D9] mb-0.5">Amount (USDT)</p>
-                                        <p className="text-sm text-white">{formatNumber(tx.amount)}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-[#D9D9D9] mb-0.5">Pnl Rate</p>
-                                        <p
-                                            className={`text-sm font-medium ${isWin ? winClass : loseClass
-                                                }`}
-                                        >
-                                            {formatNumber(tx.pnlRate)}%
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-[#D9D9D9] mb-0.5">Entry Price</p>
-                                        <p className="text-sm text-white">
-                                            {formatNumber(tx.entryPrice)}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-[#D9D9D9] mb-0.5">Close Price</p>
-                                        <p className="text-sm text-white">
-                                            {formatNumber(tx.closePrice)}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-[#D9D9D9] mb-0.5">Close Time</p>
-                                        <p className="text-sm text-white">
-                                            {formatDateTime(tx.closeTime)}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-[#D9D9D9] mb-0.5">Open Time</p>
-                                        <p className="text-sm text-white">
-                                            {formatDateTime(tx.openTime)}
-                                        </p>
-                                    </div>
-                                    <div className="col-span-2">
-                                        <p className="text-xs text-[#D9D9D9] mb-0.5">Status</p>
-                                        <p
-                                            className={`text-sm font-medium capitalize ${isWin ? winClass : loseClass
-                                                }`}
-                                        >
-                                            {isWin ? "Win" : "Lose"}
-                                        </p>
-                                    </div>
-                                </div>
+                        {showPagination && (
+                            <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={goPrev}
+                                    disabled={offset === 0 || isLoadingOrFetching}
+                                    className="px-4 py-2 rounded-lg bg-white/10 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/20"
+                                >
+                                    Previous
+                                </button>
+                                <span className="text-sm text-[#D9D9D9]">
+                                    {offset + 1}–{Math.min(offset + limit, total)} of {total}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={goNext}
+                                    disabled={!hasMore || isLoadingOrFetching}
+                                    className="px-4 py-2 rounded-lg bg-white/10 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/20"
+                                >
+                                    Next
+                                </button>
                             </div>
-                        );
-                    })
+                        )}
+
+                        {isFetching && data && (
+                            <div className="flex justify-center py-2">
+                                <div className="w-6 h-6 border-2 border-[var(--color-selsila-green)] border-t-transparent rounded-full animate-spin" />
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </main>
