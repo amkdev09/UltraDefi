@@ -22,12 +22,10 @@ export const WALLETCONNECT_WALLET_IDS = [
  * so WalletConnect + modal wallet list work on mobile (no browser extension).
  * Create your own project at https://cloud.reown.com and set `VITE_WALLETCONNECT_PROJECT_ID` for production.
  */
-export const WALLETCONNECT_PROJECT_ID_FALLBACK = "b56e18d47c72ab683b10814fe9495694";
 
 // WalletConnect project id — required for mobile; env overrides fallback.
 // Add to `.env`: VITE_WALLETCONNECT_PROJECT_ID=your_project_id
-const projectId =
-  import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || WALLETCONNECT_PROJECT_ID_FALLBACK;
+const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 
 // Central list of supported chains for this app.
 // Backend returns `transaction.chainId`; these should cover the possible values.
